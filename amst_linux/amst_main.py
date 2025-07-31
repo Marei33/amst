@@ -4,7 +4,7 @@ import numpy as np
 import warnings
 
 from glob import glob
-from tifffile import imread, imsave
+from tifffile import imread, imwrite
 from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import Pool
 from vigra import gaussianSmoothing
@@ -12,7 +12,7 @@ from silx.image import sift
 from scipy.ndimage.interpolation import shift
 from skimage.transform import downscale_local_mean, rescale
 import pyelastix
-from skimage.feature import register_translation
+from skimage.registration import phase_cross_correlation
 from skimage import filters
 
 
@@ -204,13 +204,15 @@ def optimized_elastix_params():
 
     return params
 
+
 def xcorr(offset_image, image):
     image = gaussianSmoothing(image, 1)
     offset_image = gaussianSmoothing(offset_image, 1)
     image = filters.sobel(image)
     offset_image = filters.sobel(offset_image)
-    shift, error, diffphase = register_translation(image, offset_image, 100)
+    shift, error, diffphase = phase_cross_correlation(image, offset_image, 100)
     return (shift[1], shift[0])
+
 
 def default_amst_params():
 
@@ -230,7 +232,6 @@ def default_amst_params():
                                  # step to disk; two folders will be created within the specified target directory that
                                  # contain this data ('refs' and 'sift')
     )
-
 
 
 def pre_processing_generator(
@@ -256,7 +257,7 @@ def pre_processing_generator(
         bottom_right = true_points.max(axis=0)
         # generate bounds
         bounds = np.s_[top_left[0]:bottom_right[0] + 1,  # plus 1 because slice isn't
-                 top_left[1]:bottom_right[1] + 1]  # inclusive
+                       top_left[1]:bottom_right[1] + 1]  # inclusive
         return bounds
 
     def _prepare_data(idx, batch_idx):
@@ -477,7 +478,7 @@ def _displace_slice(image, offset, result_filepath=None):
     image = shift(image, -np.round([offset[1], offset[0]]))
 
     if result_filepath is not None:
-        imsave(result_filepath, image)
+        imwrite(result_filepath, image)
 
     return image
 
@@ -529,7 +530,7 @@ def _register_with_elastix(fixed, moving,
 
 def _write_result(filepath, image):
     print('Writing result in {}'.format(filepath))
-    imsave(filepath, image)
+    imwrite(filepath, image)
 
 
 def amst_align(

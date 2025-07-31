@@ -2,7 +2,7 @@ import os
 import numpy as np
 import glob
 from multiprocessing import Pool
-from tifffile import imread, imsave
+from tifffile import imread
 from silx.image import sift
 from vigra.filters import gaussianSmoothing
 import pickle
